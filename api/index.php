@@ -21,22 +21,67 @@ if ($path === '') {
 # Para debug, descomente a linha abaixo
 #echo "Method: $method, Path: $path\n";
 
+class User {
+    public $id;
+    public $name;
+    public $email;
+
+    public function __construct(int $id, string $name, string $email) {
+        $this->id = $id;
+        $this->name = $name;
+        $this->email = $email;
+    }
+
+    public function toJson(): array {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'email' => $this->email
+        ];
+    }
+}
+
 class UserDatabase {
-    private $users = [
-        ['id' => 1, 'name' => 'João', 'email' => 'joao@example.com'],
-        ['id' => 2, 'name' => 'Maria', 'email' => 'maria@example.com'],
-    ];
+    private $host = "localhost";
+    private $user = "root";
+    private $password = "";
+    private $database = "database";
+
+    private $conn;
+
+    public function __construct() {
+        try {
+            $this->conn = new PDO("mysql:host=localhost;dbname=nome_do_banco", "root", "");
+            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        } catch(PDOException $e) {
+            die("Erro: " . $e->getMessage());
+        }
+    }
 
     public function all() {
-        return $this->users;
+        $result = $this->conn->query("SELECT id, name, email FROM clientes");
+        $users = [];
+
+        if ($result->rowCount() > 0) {
+            while($row = $result->fetch(PDO::FETCH_ASSOC)) {
+                $users[] = new User($row['id'], $row['name'], $row['email']);
+            }
+        }
+
+        return $users;
     }
 
     public function find(int $id) {
-        foreach ($this->users as $user) {
-            if ($user['id'] === $id) {
-                return $user;
-            }
+        $stmt = $this->conn->prepare("SELECT id, name, email FROM clientes WHERE id = ?");
+        $stmt->bindParam(1, $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($result) {
+            return new User($result['id'], $result['name'], $result['email']);
         }
+
         return null;
     }
 }
@@ -47,7 +92,7 @@ function get_response(int $code, array $body): void {
     exit;
 }
 
-$fake_db = new UserDatabase();
+$real_db = new UserDatabase();
 
 if ($method !== 'GET') {
     get_response(405, ['status' => 'error', 'message' => 'Metodo nao permitido']);
@@ -58,13 +103,13 @@ if (preg_match('#^/clientes$#', $path)) {
     get_response(200, [
         'status' => 'success',
         'message' => 'Lista de clientes',
-        'data' => $fake_db->all()
+        'data' => array_map(fn($user) => $user->toJson(), $real_db->all())
     ]);
 }
 
 // GET /api/clientes/{id}
 if (preg_match('#^/clientes/(\d+)$#', $path, $m)) {
-    $cliente = $fake_db->find((int)$m[1]);
+    $cliente = $real_db->find((int)$m[1]);
 
     if (!$cliente) {
         get_response(404, ['status' => 'error', 'message' => 'Cliente nao encontrado']);
@@ -73,7 +118,7 @@ if (preg_match('#^/clientes/(\d+)$#', $path, $m)) {
     get_response(200, [
         'status' => 'success',
         'message' => 'Detalhes do cliente',
-        'data' => $cliente
+        'data' => $cliente->toJson()
     ]);
 }
 

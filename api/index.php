@@ -18,6 +18,8 @@ if ($path === '') {
     $path = '/';
 }
 
+$path = strtolower($path);
+
 # Para debug, descomente a linha abaixo
 #echo "Method: $method, Path: $path\n";
 
@@ -45,13 +47,13 @@ class UserDatabase {
     private $host = "localhost";
     private $user = "root";
     private $password = "";
-    private $database = "database";
+    private $database = "sample_database";
 
     private $conn;
 
     public function __construct() {
         try {
-            $this->conn = new PDO("mysql:host=localhost;dbname=nome_do_banco", "root", "");
+            $this->conn = new PDO("mysql:host=$this->host;dbname=$this->database", $this->user, $this->password);
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         } catch(PDOException $e) {

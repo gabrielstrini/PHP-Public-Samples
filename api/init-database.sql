@@ -1,6 +1,6 @@
 -- Criar o banco de dados
-CREATE DATABASE IF NOT EXISTS nome_do_banco;
-USE nome_do_banco;
+CREATE DATABASE IF NOT EXISTS sample_database;
+USE sample_database;
 
 -- Criar tabela de clientes
 CREATE TABLE IF NOT EXISTS clientes (
